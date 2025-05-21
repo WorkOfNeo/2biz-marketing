@@ -20,12 +20,13 @@ import { Separator } from "@/components/ui/separator"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { ArrowLeft, Plus, Pencil, ChevronLeft, ChevronRight } from "lucide-react"
+import { ArrowLeft, Plus, Pencil, ChevronLeft, ChevronRight, Trash2, EyeOff } from "lucide-react"
 import { usePosts } from "@/lib/posts-context"
 import { usePostModal } from "@/lib/post-modal-context"
 import { PostModal } from "@/components/post-modal"
 import { PostDetailModal } from "@/components/post-detail-modal"
 import { useToast } from "@/components/ui/use-toast"
+import { useAuth } from "@/lib/auth-context"
 import {
   Dialog,
   DialogContent,
@@ -43,7 +44,8 @@ export default function SourceDetailPage() {
   const params = useParams()
   const router = useRouter()
   const { toast } = useToast()
-  const { sources, getSourceById, updateSourceColor, getPostsBySourceId } = usePosts()
+  const { user } = useAuth()
+  const { sources, getSourceById, updateSource, getPostsBySourceId, deleteSource } = usePosts()
   const { setEditingPost, openPostModal } = usePostModal()
   const { dashboards } = useDashboardSettings()
   const [source, setSource] = useState<any>(null)
@@ -60,6 +62,8 @@ export default function SourceDetailPage() {
   const [currentDate, setCurrentDate] = useState(new Date())
   const [calendarView, setCalendarView] = useState<"month" | "week">("month")
   const [isLoading, setIsLoading] = useState(true)
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [isHideDialogOpen, setIsHideDialogOpen] = useState(false)
 
   // For adding/editing fields
   const [isFieldDialogOpen, setIsFieldDialogOpen] = useState(false)
@@ -207,7 +211,8 @@ export default function SourceDetailPage() {
   }
 
   const handleSaveColor = () => {
-    updateSourceColor(source.id, color)
+    if (!source) return
+    updateSource(source.id, { color })
     toast({
       title: "Color updated",
       description: "The source color has been updated successfully.",
@@ -340,13 +345,75 @@ export default function SourceDetailPage() {
     )
   }
 
+  const handleDeleteSource = async () => {
+    if (!source) return
+
+    try {
+      await deleteSource(source.id)
+      toast({
+        title: "Source deleted",
+        description: "The source has been deleted successfully.",
+      })
+      router.push('/sources')
+    } catch (error) {
+      console.error('Error deleting source:', error)
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to delete source. Please try again.",
+      })
+    }
+  }
+
+  const handleHideSource = async () => {
+    if (!source) return
+
+    try {
+      await updateSource(source.id, { 
+        status: "hidden",
+        updatedAt: new Date().toISOString()
+      })
+      toast({
+        title: "Source hidden",
+        description: "The source has been hidden from view.",
+      })
+      router.push('/sources')
+    } catch (error) {
+      console.error('Error hiding source:', error)
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to hide source. Please try again.",
+      })
+    }
+  }
+
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-2">
-        <Button variant="outline" size="icon" onClick={() => router.push("/sources")}>
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
-        <h1 className="text-3xl font-bold tracking-tight">Source Details</h1>
+    <div className="container py-6 space-y-6">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <Button variant="outline" onClick={() => router.push('/sources')}>
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back to Sources
+          </Button>
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 rounded-full" style={{ backgroundColor: source?.color }} />
+            <h1 className="text-2xl font-bold">{source?.name}</h1>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          {user?.role === "super_admin" ? (
+            <Button variant="destructive" onClick={() => setIsDeleteDialogOpen(true)}>
+              <Trash2 className="mr-2 h-4 w-4" />
+              Delete Source
+            </Button>
+          ) : (
+            <Button variant="outline" onClick={() => setIsHideDialogOpen(true)}>
+              <EyeOff className="mr-2 h-4 w-4" />
+              Hide Source
+            </Button>
+          )}
+        </div>
       </div>
 
       <Card>
@@ -636,6 +703,44 @@ export default function SourceDetailPage() {
       />
 
       <PostModal />
+
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Source</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this source? This action cannot be undone and will also delete all associated posts.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleDeleteSource}>
+              Delete Source
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isHideDialogOpen} onOpenChange={setIsHideDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Hide Source</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to hide this source? It will be hidden from all users until a super admin makes it visible again.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsHideDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="outline" onClick={handleHideSource}>
+              Hide Source
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

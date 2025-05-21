@@ -20,10 +20,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea"
 import { usePostModal } from "@/lib/post-modal-context"
 import { usePosts } from "@/lib/posts-context"
+import { useToast } from "@/components/ui/use-toast"
 
 export function PostModal() {
   const { isPostModalOpen, closePostModal, editingPost } = usePostModal()
   const { sources, addPost, updatePost } = usePosts()
+  const { toast } = useToast()
 
   const [title, setTitle] = useState("")
   const [sourceId, setSourceId] = useState("")
@@ -52,7 +54,14 @@ export function PostModal() {
   }, [isPostModalOpen, editingPost, sources])
 
   const handleSubmit = async () => {
-    if (!title || !sourceId || !date) return
+    if (!title || !sourceId || !date) {
+      toast({
+        variant: "destructive",
+        title: "Missing required fields",
+        description: "Please fill in all required fields.",
+      })
+      return
+    }
 
     setIsSubmitting(true)
     const formattedDate = format(date, "yyyy-MM-dd")
@@ -79,6 +88,11 @@ export function PostModal() {
       closePostModal()
     } catch (error) {
       console.error("Error saving post:", error)
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to save post. Please try again.",
+      })
     } finally {
       setIsSubmitting(false)
     }

@@ -14,6 +14,7 @@ export type Source = {
   name: string
   platform: string
   color: string
+  status: "active" | "hidden" | "inactive"
   fields: { id: string; label: string; type: string }[]
   createdAt?: string
   updatedAt?: string
@@ -54,6 +55,7 @@ const mockSources: Source[] = [
     name: "Instagram",
     platform: "instagram",
     color: "#E1306C",
+    status: "active",
     fields: [
       { id: "impressions", label: "Impressions", type: "number" },
       { id: "likes", label: "Likes", type: "number" },
@@ -67,6 +69,7 @@ const mockSources: Source[] = [
     name: "Facebook",
     platform: "facebook",
     color: "#1877F2",
+    status: "active",
     fields: [
       { id: "impressions", label: "Impressions", type: "number" },
       { id: "likes", label: "Likes", type: "number" },
@@ -80,6 +83,7 @@ const mockSources: Source[] = [
     name: "YouTube",
     platform: "youtube",
     color: "#FF0000",
+    status: "active",
     fields: [
       { id: "views", label: "Views", type: "number" },
       { id: "likes", label: "Likes", type: "number" },
